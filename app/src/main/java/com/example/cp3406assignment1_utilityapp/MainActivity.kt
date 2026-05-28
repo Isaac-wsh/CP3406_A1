@@ -24,11 +24,18 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
@@ -43,15 +50,49 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             CP3406Assignment1UtilityAppTheme {
-                Scaffold(
-                    modifier = Modifier.fillMaxSize(),
-                    containerColor = Color(0xFFF5FAFD)
-                ) { innerPadding ->
-                    HydroCheckScreen(
-                        modifier = Modifier.padding(innerPadding)
+                HydroCheckApp()
+            }
+        }
+    }
+}
+
+enum class HydroCheckTab(
+    val label: String
+) {
+    Hydration("Hydration"),
+    Settings("Settings")
+}
+
+@Composable
+fun HydroCheckApp() {
+    var selectedTab by rememberSaveable { mutableStateOf(HydroCheckTab.Hydration) }
+
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        containerColor = Color(0xFFF5FAFD),
+        bottomBar = {
+            NavigationBar(
+                containerColor = Color.White
+            ) {
+                HydroCheckTab.entries.forEach { tab ->
+                    NavigationBarItem(
+                        selected = selectedTab == tab,
+                        onClick = { selectedTab = tab },
+                        label = { Text(tab.label) },
+                        icon = {}
                     )
                 }
             }
+        }
+    ) { innerPadding ->
+        when (selectedTab) {
+            HydroCheckTab.Hydration -> HydroCheckScreen(
+                modifier = Modifier.padding(innerPadding)
+            )
+
+            HydroCheckTab.Settings -> SettingsScreen(
+                modifier = Modifier.padding(innerPadding)
+            )
         }
     }
 }
@@ -266,10 +307,136 @@ fun DailyTipCard() {
     }
 }
 
+@Composable
+fun SettingsScreen(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                text = "Settings",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF163B4D)
+            )
+            Text(
+                text = "Adjust the preferences that will shape your hydration goal.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color(0xFF5F7280)
+            )
+        }
+
+        SettingsOptionGroup(
+            title = "City",
+            selectedOption = "Singapore",
+            options = listOf("Singapore", "Cairns", "Brisbane")
+        )
+        SettingsOptionGroup(
+            title = "Activity level",
+            selectedOption = "Medium",
+            options = listOf("Low", "Medium", "High")
+        )
+        SettingsOptionGroup(
+            title = "Preferred cup size",
+            selectedOption = "250 ml",
+            options = listOf("150 ml", "250 ml", "350 ml", "500 ml")
+        )
+        SettingsOptionGroup(
+            title = "Temperature unit",
+            selectedOption = "Celsius",
+            options = listOf("Celsius", "Fahrenheit")
+        )
+    }
+}
+
+@Composable
+fun SettingsOptionGroup(
+    title: String,
+    selectedOption: String,
+    options: List<String>
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF163B4D)
+            )
+            options.chunked(2).forEach { rowOptions ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    rowOptions.forEach { option ->
+                        SettingsChoiceChip(
+                            text = option,
+                            selected = option == selectedOption,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    if (rowOptions.size == 1) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SettingsChoiceChip(
+    text: String,
+    selected: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val containerColor = if (selected) Color(0xFF0E7490) else Color.White
+    val contentColor = if (selected) Color.White else Color(0xFF163B4D)
+
+    OutlinedCard(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.outlinedCardColors(containerColor = containerColor)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = contentColor
+            )
+        }
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
 fun HydroCheckScreenPreview() {
     CP3406Assignment1UtilityAppTheme {
         HydroCheckScreen()
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun SettingsScreenPreview() {
+    CP3406Assignment1UtilityAppTheme {
+        SettingsScreen()
     }
 }
