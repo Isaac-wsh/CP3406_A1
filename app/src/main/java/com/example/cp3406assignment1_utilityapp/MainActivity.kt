@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -66,6 +67,10 @@ enum class HydroCheckTab(
 @Composable
 fun HydroCheckApp() {
     var selectedTab by rememberSaveable { mutableStateOf(HydroCheckTab.Hydration) }
+    var selectedCity by rememberSaveable { mutableStateOf("Singapore") }
+    var selectedActivityLevel by rememberSaveable { mutableStateOf("Medium") }
+    var selectedCupSize by rememberSaveable { mutableStateOf("250 ml") }
+    var selectedTemperatureUnit by rememberSaveable { mutableStateOf("Celsius") }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -91,7 +96,15 @@ fun HydroCheckApp() {
             )
 
             HydroCheckTab.Settings -> SettingsScreen(
-                modifier = Modifier.padding(innerPadding)
+                modifier = Modifier.padding(innerPadding),
+                selectedCity = selectedCity,
+                selectedActivityLevel = selectedActivityLevel,
+                selectedCupSize = selectedCupSize,
+                selectedTemperatureUnit = selectedTemperatureUnit,
+                onCitySelected = { selectedCity = it },
+                onActivityLevelSelected = { selectedActivityLevel = it },
+                onCupSizeSelected = { selectedCupSize = it },
+                onTemperatureUnitSelected = { selectedTemperatureUnit = it }
             )
         }
     }
@@ -314,7 +327,17 @@ fun DailyTipCard() {
 }
 
 @Composable
-fun SettingsScreen(modifier: Modifier = Modifier) {
+fun SettingsScreen(
+    modifier: Modifier = Modifier,
+    selectedCity: String = "Singapore",
+    selectedActivityLevel: String = "Medium",
+    selectedCupSize: String = "250 ml",
+    selectedTemperatureUnit: String = "Celsius",
+    onCitySelected: (String) -> Unit = {},
+    onActivityLevelSelected: (String) -> Unit = {},
+    onCupSizeSelected: (String) -> Unit = {},
+    onTemperatureUnitSelected: (String) -> Unit = {}
+) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -337,23 +360,27 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
 
         SettingsOptionGroup(
             title = "City",
-            selectedOption = "Singapore",
-            options = listOf("Singapore", "Cairns", "Brisbane")
+            selectedOption = selectedCity,
+            options = listOf("Singapore", "Cairns", "Brisbane"),
+            onOptionSelected = onCitySelected
         )
         SettingsOptionGroup(
             title = "Activity level",
-            selectedOption = "Medium",
-            options = listOf("Low", "Medium", "High")
+            selectedOption = selectedActivityLevel,
+            options = listOf("Low", "Medium", "High"),
+            onOptionSelected = onActivityLevelSelected
         )
         SettingsOptionGroup(
             title = "Preferred cup size",
-            selectedOption = "250 ml",
-            options = listOf("150 ml", "250 ml", "350 ml", "500 ml")
+            selectedOption = selectedCupSize,
+            options = listOf("150 ml", "250 ml", "350 ml", "500 ml"),
+            onOptionSelected = onCupSizeSelected
         )
         SettingsOptionGroup(
             title = "Temperature unit",
-            selectedOption = "Celsius",
-            options = listOf("Celsius", "Fahrenheit")
+            selectedOption = selectedTemperatureUnit,
+            options = listOf("Celsius", "Fahrenheit"),
+            onOptionSelected = onTemperatureUnitSelected
         )
     }
 }
@@ -362,7 +389,8 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
 fun SettingsOptionGroup(
     title: String,
     selectedOption: String,
-    options: List<String>
+    options: List<String>,
+    onOptionSelected: (String) -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -389,6 +417,7 @@ fun SettingsOptionGroup(
                         SettingsChoiceChip(
                             text = option,
                             selected = option == selectedOption,
+                            onClick = { onOptionSelected(option) },
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -405,13 +434,14 @@ fun SettingsOptionGroup(
 fun SettingsChoiceChip(
     text: String,
     selected: Boolean,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val containerColor = if (selected) Color(0xFF0E7490) else Color.White
     val contentColor = if (selected) Color.White else Color(0xFF163B4D)
 
     OutlinedCard(
-        modifier = modifier,
+        modifier = modifier.clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.outlinedCardColors(containerColor = containerColor)
     ) {
