@@ -100,8 +100,8 @@ fun HydroCheckApp() {
 @Composable
 fun HydroCheckScreen(modifier: Modifier = Modifier) {
     val waterGoal = 2500
-    val waterDrunk = 1200
-    val progress = waterDrunk / waterGoal.toFloat()
+    var waterDrunk by rememberSaveable { mutableStateOf(1200) }
+    val progress = (waterDrunk / waterGoal.toFloat()).coerceIn(0f, 1f)
 
     Column(
         modifier = modifier
@@ -116,7 +116,10 @@ fun HydroCheckScreen(modifier: Modifier = Modifier) {
             waterGoal = waterGoal,
             progress = progress
         )
-        QuickAddSection()
+        QuickAddSection(
+            onAddWater = { amount -> waterDrunk += amount },
+            onReset = { waterDrunk = 0 }
+        )
         DailyTipCard()
     }
 }
@@ -244,8 +247,11 @@ fun HydrationProgressCard(
 }
 
 @Composable
-fun QuickAddSection() {
-    val quickAddOptions = listOf("+150 ml", "+250 ml", "+350 ml", "+500 ml")
+fun QuickAddSection(
+    onAddWater: (Int) -> Unit,
+    onReset: () -> Unit
+) {
+    val quickAddOptions = listOf(150, 250, 350, 500)
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
@@ -260,20 +266,20 @@ fun QuickAddSection() {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                rowOptions.forEach { option ->
+                rowOptions.forEach { amount ->
                     Button(
-                        onClick = {},
+                        onClick = { onAddWater(amount) },
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0E7490))
                     ) {
-                        Text(option)
+                        Text("+${amount} ml")
                     }
                 }
             }
         }
 
         OutlinedButton(
-            onClick = {},
+            onClick = onReset,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Reset today")
