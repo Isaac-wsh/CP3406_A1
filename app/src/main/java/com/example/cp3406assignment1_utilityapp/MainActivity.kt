@@ -45,6 +45,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.cp3406assignment1_utilityapp.ui.theme.CP3406Assignment1UtilityAppTheme
 
+// Main entry point for the HydroCheck Android app.
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,6 +58,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+// Represents the two bottom navigation destinations in the app.
 enum class HydroCheckTab(
     val label: String
 ) {
@@ -64,9 +66,12 @@ enum class HydroCheckTab(
     Settings("Settings")
 }
 
+// Root composable that stores shared screen state and switches between tabs.
 @Composable
 fun HydroCheckApp() {
     var selectedTab by rememberSaveable { mutableStateOf(HydroCheckTab.Hydration) }
+
+    // Settings values are saved across recompositions and basic configuration changes.
     var selectedCity by rememberSaveable { mutableStateOf("Singapore") }
     var selectedActivityLevel by rememberSaveable { mutableStateOf("Medium") }
     var selectedCupSize by rememberSaveable { mutableStateOf("250 ml") }
@@ -80,6 +85,7 @@ fun HydroCheckApp() {
                 containerColor = Color.White
             ) {
                 HydroCheckTab.entries.forEach { tab ->
+                    // Bottom navigation item for switching between Hydration and Settings.
                     NavigationBarItem(
                         selected = selectedTab == tab,
                         onClick = { selectedTab = tab },
@@ -110,10 +116,15 @@ fun HydroCheckApp() {
     }
 }
 
+// Main hydration screen that shows water progress, quick actions, and advice.
 @Composable
 fun HydroCheckScreen(modifier: Modifier = Modifier) {
     val waterGoal = 2500
+
+    // Current water intake is local UI state for this early app version.
     var waterDrunk by rememberSaveable { mutableStateOf(1200) }
+
+    // The progress bar is capped at 100% even if the user drinks more than the goal.
     val progress = (waterDrunk / waterGoal.toFloat()).coerceIn(0f, 1f)
 
     Column(
@@ -137,6 +148,7 @@ fun HydroCheckScreen(modifier: Modifier = Modifier) {
     }
 }
 
+// Header area with the app name and short purpose statement.
 @Composable
 fun HeaderSection() {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -154,6 +166,7 @@ fun HeaderSection() {
     }
 }
 
+// Weather summary card with placeholder data for the current design stage.
 @Composable
 fun WeatherSummaryCard() {
     Card(
@@ -199,6 +212,7 @@ fun WeatherSummaryCard() {
     }
 }
 
+// Card that displays the daily water intake amount, goal, and progress bar.
 @Composable
 fun HydrationProgressCard(
     waterDrunk: Int,
@@ -259,6 +273,7 @@ fun HydrationProgressCard(
     }
 }
 
+// Quick action section for adding common water amounts or resetting the day.
 @Composable
 fun QuickAddSection(
     onAddWater: (Int) -> Unit,
@@ -274,6 +289,7 @@ fun QuickAddSection(
             color = Color(0xFF163B4D)
         )
 
+        // Display quick add options in two-button rows to keep the layout compact.
         quickAddOptions.chunked(2).forEach { rowOptions ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -300,6 +316,7 @@ fun QuickAddSection(
     }
 }
 
+// Recommendation card that explains why the user may need extra water.
 @Composable
 fun DailyTipCard() {
     Surface(
@@ -326,6 +343,7 @@ fun DailyTipCard() {
     }
 }
 
+// Settings screen where the user can choose preferences for hydration planning.
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
@@ -358,6 +376,7 @@ fun SettingsScreen(
             )
         }
 
+        // Each settings group shows one selected value and lets the user pick another.
         SettingsOptionGroup(
             title = "City",
             selectedOption = selectedCity,
@@ -385,6 +404,7 @@ fun SettingsScreen(
     }
 }
 
+// Reusable card for one settings category, such as city or cup size.
 @Composable
 fun SettingsOptionGroup(
     title: String,
@@ -414,6 +434,7 @@ fun SettingsOptionGroup(
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     rowOptions.forEach { option ->
+                        // Selecting a chip updates the matching state in HydroCheckApp.
                         SettingsChoiceChip(
                             text = option,
                             selected = option == selectedOption,
@@ -430,6 +451,7 @@ fun SettingsOptionGroup(
     }
 }
 
+// Clickable setting chip that visually highlights the currently selected option.
 @Composable
 fun SettingsChoiceChip(
     text: String,
@@ -461,6 +483,7 @@ fun SettingsChoiceChip(
     }
 }
 
+// Preview for checking the Hydration screen in Android Studio.
 @Preview(showBackground = true)
 @Composable
 fun HydroCheckScreenPreview() {
@@ -469,6 +492,7 @@ fun HydroCheckScreenPreview() {
     }
 }
 
+// Preview for checking the Settings screen in Android Studio.
 @Preview(showBackground = true)
 @Composable
 fun SettingsScreenPreview() {
