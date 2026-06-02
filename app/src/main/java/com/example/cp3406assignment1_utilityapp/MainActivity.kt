@@ -6,6 +6,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -97,8 +99,13 @@ fun HydroCheckApp() {
         }
     ) { innerPadding ->
         when (selectedTab) {
+            // Pass current settings into the Hydration screen so the main content updates.
             HydroCheckTab.Hydration -> HydroCheckScreen(
-                modifier = Modifier.padding(innerPadding)
+                modifier = Modifier.padding(innerPadding),
+                selectedCity = selectedCity,
+                selectedActivityLevel = selectedActivityLevel,
+                selectedCupSize = selectedCupSize,
+                selectedTemperatureUnit = selectedTemperatureUnit
             )
 
             HydroCheckTab.Settings -> SettingsScreen(
@@ -118,8 +125,18 @@ fun HydroCheckApp() {
 
 // Main hydration screen that shows water progress, quick actions, and advice.
 @Composable
-fun HydroCheckScreen(modifier: Modifier = Modifier) {
-    val waterGoal = 2500
+fun HydroCheckScreen(
+    modifier: Modifier = Modifier,
+    selectedCity: String = "Singapore",
+    selectedActivityLevel: String = "Medium",
+    selectedCupSize: String = "250 ml",
+    selectedTemperatureUnit: String = "Celsius"
+) {
+    // Settings are translated into the values shown on the main screen.
+    val waterGoal = hydrationGoalForActivity(selectedActivityLevel)
+    val cityTemperature = temperatureForCity(selectedCity)
+    val displayedTemperature = formatTemperature(cityTemperature, selectedTemperatureUnit)
+    val preferredCupSize = selectedCupSize.removeSuffix(" ml").toIntOrNull() ?: 250
 
     // Current water intake is local UI state for this early app version.
     var waterDrunk by rememberSaveable { mutableStateOf(1200) }
@@ -130,21 +147,57 @@ fun HydroCheckScreen(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxSize()
+            // Scrolling prevents the recommendation card from being clipped on small screens.
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         HeaderSection()
-        WeatherSummaryCard()
+        WeatherSummaryCard(
+            city = selectedCity,
+            temperature = displayedTemperature
+        )
         HydrationProgressCard(
             waterDrunk = waterDrunk,
             waterGoal = waterGoal,
             progress = progress
         )
         QuickAddSection(
+            preferredCupSize = preferredCupSize,
             onAddWater = { amount -> waterDrunk += amount },
             onReset = { waterDrunk = 0 }
         )
-        DailyTipCard()
+        DailyTipCard(
+            selectedActivityLevel = selectedActivityLevel,
+            selectedCupSize = selectedCupSize
+        )
+    }
+}
+
+// Converts the selected activity level into a daily hydration goal.
+fun hydrationGoalForActivity(activityLevel: String): Int {
+    return when (activityLevel) {
+        "Low" -> 2000
+        "High" -> 3000
+        else -> 2500
+    }
+}
+
+// Provides temporary city temperature values until the weather API is connected.
+fun temperatureForCity(city: String): Int {
+    return when (city) {
+        "Cairns" -> 29
+        "Brisbane" -> 26
+        else -> 32
+    }
+}
+
+// Formats the temperature based on the selected unit.
+fun formatTemperature(celsius: Int, unit: String): String {
+    return if (unit == "Fahrenheit") {
+        "${(celsius * 9 / 5) + 32}°F"
+    } else {
+        "$celsius°C"
     }
 }
 
@@ -166,9 +219,12 @@ fun HeaderSection() {
     }
 }
 
-// Weather summary card with placeholder data for the current design stage.
+// Weather summary card that reflects the selected city and temperature unit.
 @Composable
-fun WeatherSummaryCard() {
+fun WeatherSummaryCard(
+    city: String,
+    temperature: String
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
@@ -188,7 +244,7 @@ fun WeatherSummaryCard() {
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "32",
+                    text = temperature,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF163B4D)
@@ -197,7 +253,7 @@ fun WeatherSummaryCard() {
             Spacer(modifier = Modifier.width(16.dp))
             Column {
                 Text(
-                    text = "Singapore",
+                    text = city,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = Color(0xFF163B4D)
@@ -276,14 +332,16 @@ fun HydrationProgressCard(
 // Quick action section for adding common water amounts or resetting the day.
 @Composable
 fun QuickAddSection(
+    preferredCupSize: Int,
     onAddWater: (Int) -> Unit,
     onReset: () -> Unit
 ) {
-    val quickAddOptions = listOf(150, 250, 350, 500)
+    // Put the preferred cup size first, then add the standard options without duplicates.
+    val quickAddOptions = (listOf(preferredCupSize, 150, 250, 350, 500)).distinct()
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
-            text = "Quick add",
+            text = "Quick add - Preferred ${preferredCupSize} ml",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
             color = Color(0xFF163B4D)
@@ -316,9 +374,12 @@ fun QuickAddSection(
     }
 }
 
-// Recommendation card that explains why the user may need extra water.
+// Recommendation card that explains how settings affect the current plan.
 @Composable
-fun DailyTipCard() {
+fun DailyTipCard(
+    selectedActivityLevel: String,
+    selectedCupSize: String
+) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -335,7 +396,7 @@ fun DailyTipCard() {
                 color = Color(0xFF6B4E00)
             )
             Text(
-                text = "Hot weather can increase water loss. Try adding one extra cup before your next study break.",
+                text = "$selectedActivityLevel activity is used for today's goal. Your preferred quick add amount is $selectedCupSize.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color(0xFF6B4E00)
             )
@@ -359,6 +420,8 @@ fun SettingsScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            // Scrolling keeps all setting groups reachable on smaller devices.
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
