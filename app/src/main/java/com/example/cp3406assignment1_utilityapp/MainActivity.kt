@@ -45,6 +45,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.cp3406assignment1_utilityapp.ui.theme.CP3406Assignment1UtilityAppTheme
 
 // Main entry point for the HydroCheck Android app.
@@ -68,16 +69,13 @@ enum class HydroCheckTab(
     Settings("Settings")
 }
 
-// Root composable that stores shared screen state and switches between tabs.
+// Root composable that connects the ViewModel state to the app screens.
 @Composable
-fun HydroCheckApp() {
+fun HydroCheckApp(
+    hydrationViewModel: HydrationViewModel = viewModel()
+) {
     var selectedTab by rememberSaveable { mutableStateOf(HydroCheckTab.Hydration) }
-
-    // Settings values are saved across recompositions and basic configuration changes.
-    var selectedCity by rememberSaveable { mutableStateOf("Singapore") }
-    var selectedActivityLevel by rememberSaveable { mutableStateOf("Medium") }
-    var selectedCupSize by rememberSaveable { mutableStateOf("250 ml") }
-    var selectedTemperatureUnit by rememberSaveable { mutableStateOf("Celsius") }
+    val uiState = hydrationViewModel.uiState
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -99,25 +97,21 @@ fun HydroCheckApp() {
         }
     ) { innerPadding ->
         when (selectedTab) {
-            // Pass current settings into the Hydration screen so the main content updates.
+            // Pass current ViewModel state into the Hydration screen so the main content updates.
             HydroCheckTab.Hydration -> HydroCheckScreen(
                 modifier = Modifier.padding(innerPadding),
-                selectedCity = selectedCity,
-                selectedActivityLevel = selectedActivityLevel,
-                selectedCupSize = selectedCupSize,
-                selectedTemperatureUnit = selectedTemperatureUnit
+                uiState = uiState,
+                onAddWater = hydrationViewModel::addWater,
+                onResetWater = hydrationViewModel::resetWater
             )
 
             HydroCheckTab.Settings -> SettingsScreen(
                 modifier = Modifier.padding(innerPadding),
-                selectedCity = selectedCity,
-                selectedActivityLevel = selectedActivityLevel,
-                selectedCupSize = selectedCupSize,
-                selectedTemperatureUnit = selectedTemperatureUnit,
-                onCitySelected = { selectedCity = it },
-                onActivityLevelSelected = { selectedActivityLevel = it },
-                onCupSizeSelected = { selectedCupSize = it },
-                onTemperatureUnitSelected = { selectedTemperatureUnit = it }
+                uiState = uiState,
+                onCitySelected = hydrationViewModel::selectCity,
+                onActivityLevelSelected = hydrationViewModel::selectActivityLevel,
+                onCupSizeSelected = hydrationViewModel::selectCupSize,
+                onTemperatureUnitSelected = hydrationViewModel::selectTemperatureUnit
             )
         }
     }
@@ -127,23 +121,10 @@ fun HydroCheckApp() {
 @Composable
 fun HydroCheckScreen(
     modifier: Modifier = Modifier,
-    selectedCity: String = "Singapore",
-    selectedActivityLevel: String = "Medium",
-    selectedCupSize: String = "250 ml",
-    selectedTemperatureUnit: String = "Celsius"
+    uiState: HydrationUiState = HydrationUiState(),
+    onAddWater: (Int) -> Unit = {},
+    onResetWater: () -> Unit = {}
 ) {
-    // Settings are translated into the values shown on the main screen.
-    val waterGoal = hydrationGoalForActivity(selectedActivityLevel)
-    val cityTemperature = temperatureForCity(selectedCity)
-    val displayedTemperature = formatTemperature(cityTemperature, selectedTemperatureUnit)
-    val preferredCupSize = selectedCupSize.removeSuffix(" ml").toIntOrNull() ?: 250
-
-    // Current water intake is local UI state for this early app version.
-    var waterDrunk by rememberSaveable { mutableStateOf(1200) }
-
-    // The progress bar is capped at 100% even if the user drinks more than the goal.
-    val progress = (waterDrunk / waterGoal.toFloat()).coerceIn(0f, 1f)
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -154,50 +135,23 @@ fun HydroCheckScreen(
     ) {
         HeaderSection()
         WeatherSummaryCard(
-            city = selectedCity,
-            temperature = displayedTemperature
+            city = uiState.selectedCity,
+            temperature = uiState.displayedTemperature
         )
         HydrationProgressCard(
-            waterDrunk = waterDrunk,
-            waterGoal = waterGoal,
-            progress = progress
+            waterDrunk = uiState.waterDrunk,
+            waterGoal = uiState.waterGoal,
+            progress = uiState.progress
         )
         QuickAddSection(
-            preferredCupSize = preferredCupSize,
-            onAddWater = { amount -> waterDrunk += amount },
-            onReset = { waterDrunk = 0 }
+            preferredCupSize = uiState.preferredCupSize,
+            onAddWater = onAddWater,
+            onReset = onResetWater
         )
         DailyTipCard(
-            selectedActivityLevel = selectedActivityLevel,
-            selectedCupSize = selectedCupSize
+            selectedActivityLevel = uiState.selectedActivityLevel,
+            selectedCupSize = uiState.selectedCupSize
         )
-    }
-}
-
-// Converts the selected activity level into a daily hydration goal.
-fun hydrationGoalForActivity(activityLevel: String): Int {
-    return when (activityLevel) {
-        "Low" -> 2000
-        "High" -> 3000
-        else -> 2500
-    }
-}
-
-// Provides temporary city temperature values until the weather API is connected.
-fun temperatureForCity(city: String): Int {
-    return when (city) {
-        "Cairns" -> 29
-        "Brisbane" -> 26
-        else -> 32
-    }
-}
-
-// Formats the temperature based on the selected unit.
-fun formatTemperature(celsius: Int, unit: String): String {
-    return if (unit == "Fahrenheit") {
-        "${(celsius * 9 / 5) + 32}°F"
-    } else {
-        "$celsius°C"
     }
 }
 
@@ -408,10 +362,7 @@ fun DailyTipCard(
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
-    selectedCity: String = "Singapore",
-    selectedActivityLevel: String = "Medium",
-    selectedCupSize: String = "250 ml",
-    selectedTemperatureUnit: String = "Celsius",
+    uiState: HydrationUiState = HydrationUiState(),
     onCitySelected: (String) -> Unit = {},
     onActivityLevelSelected: (String) -> Unit = {},
     onCupSizeSelected: (String) -> Unit = {},
@@ -442,25 +393,25 @@ fun SettingsScreen(
         // Each settings group shows one selected value and lets the user pick another.
         SettingsOptionGroup(
             title = "City",
-            selectedOption = selectedCity,
+            selectedOption = uiState.selectedCity,
             options = listOf("Singapore", "Cairns", "Brisbane"),
             onOptionSelected = onCitySelected
         )
         SettingsOptionGroup(
             title = "Activity level",
-            selectedOption = selectedActivityLevel,
+            selectedOption = uiState.selectedActivityLevel,
             options = listOf("Low", "Medium", "High"),
             onOptionSelected = onActivityLevelSelected
         )
         SettingsOptionGroup(
             title = "Preferred cup size",
-            selectedOption = selectedCupSize,
+            selectedOption = uiState.selectedCupSize,
             options = listOf("150 ml", "250 ml", "350 ml", "500 ml"),
             onOptionSelected = onCupSizeSelected
         )
         SettingsOptionGroup(
             title = "Temperature unit",
-            selectedOption = selectedTemperatureUnit,
+            selectedOption = uiState.selectedTemperatureUnit,
             options = listOf("Celsius", "Fahrenheit"),
             onOptionSelected = onTemperatureUnitSelected
         )
