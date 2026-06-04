@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Spacer
@@ -30,6 +31,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
@@ -50,6 +52,16 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.cp3406assignment1_utilityapp.ui.theme.CP3406Assignment1UtilityAppTheme
 
+private val AppBackground = Color(0xFFF4FAFC)
+private val PrimaryTeal = Color(0xFF0E7490)
+private val DeepText = Color(0xFF163B4D)
+private val MutedText = Color(0xFF5F7280)
+private val SoftBlue = Color(0xFFE2F3FA)
+private val SoftTrack = Color(0xFFD4EEF5)
+private val WarningFill = Color(0xFFFFF4D6)
+private val WarningText = Color(0xFF6B4E00)
+private val CardWhite = Color.White
+
 // Main entry point for the HydroCheck Android app.
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -67,7 +79,7 @@ class MainActivity : ComponentActivity() {
 enum class HydroCheckTab(
     val label: String
 ) {
-    Hydration("Hydration"),
+    Hydration("Home"),
     Insights("Insights"),
     History("History"),
     Settings("Settings")
@@ -83,10 +95,10 @@ fun HydroCheckApp(
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = Color(0xFFF5FAFD),
+        containerColor = AppBackground,
         bottomBar = {
             NavigationBar(
-                containerColor = Color.White
+                containerColor = CardWhite
             ) {
                 HydroCheckTab.entries.forEach { tab ->
                     // Bottom navigation item for switching between Hydration and Settings.
@@ -94,7 +106,12 @@ fun HydroCheckApp(
                         selected = selectedTab == tab,
                         onClick = { selectedTab = tab },
                         label = { Text(tab.label) },
-                        icon = {}
+                        icon = {},
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedTextColor = PrimaryTeal,
+                            indicatorColor = SoftBlue,
+                            unselectedTextColor = MutedText
+                        )
                     )
                 }
             }
@@ -131,6 +148,43 @@ fun HydroCheckApp(
     }
 }
 
+// Shared page layout that keeps every screen visually consistent.
+@Composable
+fun AppPage(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 22.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp),
+        content = content
+    )
+}
+
+// Shared page title style for secondary screens.
+@Composable
+fun PageHeader(
+    title: String,
+    subtitle: String
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.headlineLarge,
+            fontWeight = FontWeight.Bold,
+            color = DeepText
+        )
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MutedText
+        )
+    }
+}
+
 // Main hydration screen that shows water progress, quick actions, and advice.
 @Composable
 fun HydroCheckScreen(
@@ -139,14 +193,7 @@ fun HydroCheckScreen(
     onAddWater: (Int) -> Unit = {},
     onResetWater: () -> Unit = {}
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            // Scrolling prevents the recommendation card from being clipped on small screens.
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
-    ) {
+    AppPage(modifier = modifier) {
         HeaderSection()
         WeatherSummaryCard(
             city = uiState.selectedCity,
@@ -172,28 +219,38 @@ fun HydroCheckScreen(
 // Header area with the app name and short purpose statement.
 @Composable
 fun HeaderSection() {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = CardWhite),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
         Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Image(
                 painter = painterResource(id = R.drawable.hydrocheck_logo),
                 contentDescription = "HydroCheck logo",
-                modifier = Modifier.size(54.dp)
+                modifier = Modifier.size(58.dp)
             )
-            Text(
-                text = "HydroCheck",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF163B4D)
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "HydroCheck",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = DeepText
+                )
+                Text(
+                    text = "Daily hydration, quickly checked.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MutedText
+                )
+            }
         }
-        Text(
-            text = "Your daily hydration at a glance",
-            style = MaterialTheme.typography.bodyLarge,
-            color = Color(0xFF5F7280)
-        )
     }
 }
 
@@ -206,7 +263,7 @@ fun WeatherSummaryCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFE2F3FA)),
+        colors = CardDefaults.cardColors(containerColor = SoftBlue),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
@@ -225,7 +282,7 @@ fun WeatherSummaryCard(
                     text = temperature,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF163B4D)
+                    color = DeepText
                 )
             }
             Spacer(modifier = Modifier.width(16.dp))
@@ -234,12 +291,12 @@ fun WeatherSummaryCard(
                     text = city,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF163B4D)
+                    color = DeepText
                 )
                 Text(
                     text = "Warm weather detected",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF5F7280)
+                    color = MutedText
                 )
             }
         }
@@ -256,7 +313,7 @@ fun HydrationProgressCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = CardWhite),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -272,20 +329,20 @@ fun HydrationProgressCard(
                     Text(
                         text = "Today",
                         style = MaterialTheme.typography.labelLarge,
-                        color = Color(0xFF5F7280)
+                        color = MutedText
                     )
                     Text(
                         text = "${waterDrunk} ml",
                         style = MaterialTheme.typography.displaySmall,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0E7490)
+                        color = PrimaryTeal
                     )
                 }
                 Text(
                     text = "Goal ${waterGoal / 1000.0} L",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF163B4D)
+                    color = DeepText
                 )
             }
 
@@ -294,14 +351,14 @@ fun HydrationProgressCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(12.dp),
-                color = Color(0xFF0E7490),
-                trackColor = Color(0xFFD4EEF5)
+                color = PrimaryTeal,
+                trackColor = SoftTrack
             )
 
             Text(
                 text = "You have completed ${(progress * 100).toInt()}% of your daily goal.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFF5F7280)
+                color = MutedText
             )
         }
     }
@@ -322,7 +379,7 @@ fun QuickAddSection(
             text = "Quick add - Preferred ${preferredCupSize} ml",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
-            color = Color(0xFF163B4D)
+            color = DeepText
         )
 
         // Display quick add options in two-button rows to keep the layout compact.
@@ -334,8 +391,11 @@ fun QuickAddSection(
                 rowOptions.forEach { amount ->
                     Button(
                         onClick = { onAddWater(amount) },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0E7490))
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryTeal)
                     ) {
                         Text("+${amount} ml")
                     }
@@ -345,7 +405,10 @@ fun QuickAddSection(
 
         OutlinedButton(
             onClick = onReset,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            shape = RoundedCornerShape(16.dp)
         ) {
             Text("Reset today")
         }
@@ -361,7 +424,7 @@ fun DailyTipCard(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        color = Color(0xFFFFF4D6)
+        color = WarningFill
     ) {
         Column(
             modifier = Modifier.padding(18.dp),
@@ -371,12 +434,12 @@ fun DailyTipCard(
                 text = "Today's recommendation",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF6B4E00)
+                color = WarningText
             )
             Text(
                 text = "$selectedActivityLevel activity is used for today's goal. Your preferred quick add amount is $selectedCupSize.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFF6B4E00)
+                color = WarningText
             )
         }
     }
@@ -392,31 +455,16 @@ fun InsightsScreen(
     val remainingWater = (uiState.waterGoal - uiState.waterDrunk).coerceAtLeast(0)
     val suggestedNextDrink = uiState.preferredCupSize.coerceAtMost(remainingWater.takeIf { it > 0 } ?: uiState.preferredCupSize)
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(
-                text = "Insights",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF163B4D)
-            )
-            Text(
-                text = "A quick summary of today's hydration plan.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = Color(0xFF5F7280)
-            )
-        }
+    AppPage(modifier = modifier) {
+        PageHeader(
+            title = "Insights",
+            subtitle = "A quick summary of today's hydration plan."
+        )
 
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
+            colors = CardDefaults.cardColors(containerColor = CardWhite),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(
@@ -427,20 +475,20 @@ fun InsightsScreen(
                     text = "$completedPercent% complete",
                     style = MaterialTheme.typography.displaySmall,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF0E7490)
+                    color = PrimaryTeal
                 )
                 LinearProgressIndicator(
                     progress = { uiState.progress },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(12.dp),
-                    color = Color(0xFF0E7490),
-                    trackColor = Color(0xFFD4EEF5)
+                    color = PrimaryTeal,
+                    trackColor = SoftTrack
                 )
                 Text(
                     text = "${uiState.waterDrunk} ml recorded out of ${uiState.waterGoal} ml.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF5F7280)
+                    color = MutedText
                 )
             }
         }
@@ -481,7 +529,7 @@ fun InsightMetricCard(
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = CardWhite),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
@@ -491,19 +539,19 @@ fun InsightMetricCard(
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelLarge,
-                color = Color(0xFF5F7280)
+                color = MutedText
             )
             Text(
                 text = value,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF163B4D)
+                color = DeepText
             )
             if (supportingText != null) {
                 Text(
                     text = supportingText,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF5F7280)
+                    color = MutedText
                 )
             }
         }
@@ -516,26 +564,11 @@ fun HistoryScreen(
     modifier: Modifier = Modifier,
     uiState: HydrationUiState = HydrationUiState()
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(
-                text = "History",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF163B4D)
-            )
-            Text(
-                text = "Review individual drinks and daily totals.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = Color(0xFF5F7280)
-            )
-        }
+    AppPage(modifier = modifier) {
+        PageHeader(
+            title = "History",
+            subtitle = "Review individual drinks and daily totals."
+        )
 
         DrinkLogSection(drinkLog = uiState.drinkLog)
         DailyTotalsSection(dailyTotals = uiState.dailyTotals)
@@ -581,7 +614,7 @@ fun HistorySectionCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = CardWhite),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
@@ -592,7 +625,7 @@ fun HistorySectionCard(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF163B4D)
+                color = DeepText
             )
             content()
         }
@@ -614,12 +647,12 @@ fun HistoryRow(
             text = leadingText,
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.SemiBold,
-            color = Color(0xFF163B4D)
+            color = DeepText
         )
         Text(
             text = trailingText,
             style = MaterialTheme.typography.bodyMedium,
-            color = Color(0xFF5F7280)
+            color = MutedText
         )
     }
 }
@@ -630,7 +663,7 @@ fun EmptyHistoryText(text: String) {
     Text(
         text = text,
         style = MaterialTheme.typography.bodyMedium,
-        color = Color(0xFF5F7280)
+        color = MutedText
     )
 }
 
@@ -644,27 +677,11 @@ fun SettingsScreen(
     onCupSizeSelected: (String) -> Unit = {},
     onTemperatureUnitSelected: (String) -> Unit = {}
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            // Scrolling keeps all setting groups reachable on smaller devices.
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(
-                text = "Settings",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF163B4D)
-            )
-            Text(
-                text = "Adjust the preferences that will shape your hydration goal.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = Color(0xFF5F7280)
-            )
-        }
+    AppPage(modifier = modifier) {
+        PageHeader(
+            title = "Settings",
+            subtitle = "Adjust the preferences that will shape your hydration goal."
+        )
 
         // Each settings group shows one selected value and lets the user pick another.
         SettingsOptionGroup(
@@ -705,7 +722,7 @@ fun SettingsOptionGroup(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = CardWhite),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
@@ -716,7 +733,7 @@ fun SettingsOptionGroup(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF163B4D)
+                color = DeepText
             )
             options.chunked(2).forEach { rowOptions ->
                 Row(
@@ -749,8 +766,8 @@ fun SettingsChoiceChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val containerColor = if (selected) Color(0xFF0E7490) else Color.White
-    val contentColor = if (selected) Color.White else Color(0xFF163B4D)
+    val containerColor = if (selected) PrimaryTeal else CardWhite
+    val contentColor = if (selected) CardWhite else DeepText
 
     OutlinedCard(
         modifier = modifier.clickable(onClick = onClick),
