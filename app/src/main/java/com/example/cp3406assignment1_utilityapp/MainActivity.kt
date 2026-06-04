@@ -67,6 +67,7 @@ enum class HydroCheckTab(
 ) {
     Hydration("Hydration"),
     Insights("Insights"),
+    History("History"),
     Settings("Settings")
 }
 
@@ -107,6 +108,11 @@ fun HydroCheckApp(
             )
 
             HydroCheckTab.Insights -> InsightsScreen(
+                modifier = Modifier.padding(innerPadding),
+                uiState = uiState
+            )
+
+            HydroCheckTab.History -> HistoryScreen(
                 modifier = Modifier.padding(innerPadding),
                 uiState = uiState
             )
@@ -492,6 +498,130 @@ fun InsightMetricCard(
     }
 }
 
+// History screen with separate sections for today's entries and daily totals.
+@Composable
+fun HistoryScreen(
+    modifier: Modifier = Modifier,
+    uiState: HydrationUiState = HydrationUiState()
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                text = "History",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF163B4D)
+            )
+            Text(
+                text = "Review individual drinks and daily totals.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color(0xFF5F7280)
+            )
+        }
+
+        DrinkLogSection(drinkLog = uiState.drinkLog)
+        DailyTotalsSection(dailyTotals = uiState.dailyTotals)
+    }
+}
+
+// Shows each water entry recorded today with its amount and time.
+@Composable
+fun DrinkLogSection(drinkLog: List<DrinkLogEntry>) {
+    HistorySectionCard(title = "Today's drink log") {
+        if (drinkLog.isEmpty()) {
+            EmptyHistoryText(text = "No drinks logged yet today.")
+        } else {
+            drinkLog.forEach { entry ->
+                HistoryRow(
+                    leadingText = "+${entry.amount} ml",
+                    trailingText = entry.time
+                )
+            }
+        }
+    }
+}
+
+// Shows daily water totals for today and previous days in this app session.
+@Composable
+fun DailyTotalsSection(dailyTotals: List<DailyTotalEntry>) {
+    HistorySectionCard(title = "Daily totals") {
+        dailyTotals.forEach { entry ->
+            HistoryRow(
+                leadingText = entry.date,
+                trailingText = "${entry.totalAmount} ml"
+            )
+        }
+    }
+}
+
+// Reusable card container for each History section.
+@Composable
+fun HistorySectionCard(
+    title: String,
+    content: @Composable () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF163B4D)
+            )
+            content()
+        }
+    }
+}
+
+// One row in a History section.
+@Composable
+fun HistoryRow(
+    leadingText: String,
+    trailingText: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = leadingText,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0xFF163B4D)
+        )
+        Text(
+            text = trailingText,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color(0xFF5F7280)
+        )
+    }
+}
+
+// Placeholder text for an empty History section.
+@Composable
+fun EmptyHistoryText(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = Color(0xFF5F7280)
+    )
+}
+
 // Settings screen where the user can choose preferences for hydration planning.
 @Composable
 fun SettingsScreen(
@@ -646,6 +776,27 @@ fun HydroCheckScreenPreview() {
 fun InsightsScreenPreview() {
     CP3406Assignment1UtilityAppTheme {
         InsightsScreen()
+    }
+}
+
+// Preview for checking the History screen in Android Studio.
+@Preview(showBackground = true)
+@Composable
+fun HistoryScreenPreview() {
+    CP3406Assignment1UtilityAppTheme {
+        HistoryScreen(
+            uiState = HydrationUiState(
+                waterDrunk = 750,
+                drinkLog = listOf(
+                    DrinkLogEntry(amount = 250, time = "9:15 AM", date = "2026-06-04"),
+                    DrinkLogEntry(amount = 500, time = "11:40 AM", date = "2026-06-04")
+                ),
+                dailyTotals = listOf(
+                    DailyTotalEntry(date = "2026-06-04", totalAmount = 750),
+                    DailyTotalEntry(date = "2026-06-03", totalAmount = 2100)
+                )
+            )
+        )
     }
 }
 
