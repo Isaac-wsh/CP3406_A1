@@ -4,11 +4,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 // Holds all hydration and settings values needed by the UI.
 data class HydrationUiState(
     // Current amount of water recorded for today.
-    val waterDrunk: Int = 1200,
+    val waterDrunk: Int = 0,
+    // Date key used to detect when the daily record should reset.
+    val recordedDate: String = todayDateKey(),
     // User-selected city used by the temporary weather display.
     val selectedCity: String = "Singapore",
     // User-selected activity level used to calculate the daily water goal.
@@ -61,12 +66,16 @@ class HydrationViewModel : ViewModel() {
 
     // Adds a selected water amount to today's total.
     fun addWater(amount: Int) {
+        refreshDailyIntakeIfNeeded()
         uiState = uiState.copy(waterDrunk = uiState.waterDrunk + amount)
     }
 
     // Clears today's recorded water intake.
     fun resetWater() {
-        uiState = uiState.copy(waterDrunk = 0)
+        uiState = uiState.copy(
+            waterDrunk = 0,
+            recordedDate = todayDateKey()
+        )
     }
 
     // Updates the city setting selected by the user.
@@ -88,4 +97,20 @@ class HydrationViewModel : ViewModel() {
     fun selectTemperatureUnit(temperatureUnit: String) {
         uiState = uiState.copy(selectedTemperatureUnit = temperatureUnit)
     }
+
+    // Resets the daily water amount if the app is still open on a new day.
+    private fun refreshDailyIntakeIfNeeded() {
+        val today = todayDateKey()
+        if (uiState.recordedDate != today) {
+            uiState = uiState.copy(
+                waterDrunk = 0,
+                recordedDate = today
+            )
+        }
+    }
+}
+
+// Creates a stable local date key for daily reset checks.
+private fun todayDateKey(): String {
+    return SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
 }
