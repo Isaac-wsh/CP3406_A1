@@ -61,11 +61,12 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// Represents the two bottom navigation destinations in the app.
+// Represents the bottom navigation destinations in the app.
 enum class HydroCheckTab(
     val label: String
 ) {
     Hydration("Hydration"),
+    Insights("Insights"),
     Settings("Settings")
 }
 
@@ -103,6 +104,11 @@ fun HydroCheckApp(
                 uiState = uiState,
                 onAddWater = hydrationViewModel::addWater,
                 onResetWater = hydrationViewModel::resetWater
+            )
+
+            HydroCheckTab.Insights -> InsightsScreen(
+                modifier = Modifier.padding(innerPadding),
+                uiState = uiState
             )
 
             HydroCheckTab.Settings -> SettingsScreen(
@@ -358,6 +364,134 @@ fun DailyTipCard(
     }
 }
 
+// Insights screen that summarizes hydration progress and selected settings.
+@Composable
+fun InsightsScreen(
+    modifier: Modifier = Modifier,
+    uiState: HydrationUiState = HydrationUiState()
+) {
+    val completedPercent = (uiState.progress * 100).toInt()
+    val remainingWater = (uiState.waterGoal - uiState.waterDrunk).coerceAtLeast(0)
+    val suggestedNextDrink = uiState.preferredCupSize.coerceAtMost(remainingWater.takeIf { it > 0 } ?: uiState.preferredCupSize)
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                text = "Insights",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF163B4D)
+            )
+            Text(
+                text = "A quick summary of today's hydration plan.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color(0xFF5F7280)
+            )
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "$completedPercent% complete",
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF0E7490)
+                )
+                LinearProgressIndicator(
+                    progress = { uiState.progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(12.dp),
+                    color = Color(0xFF0E7490),
+                    trackColor = Color(0xFFD4EEF5)
+                )
+                Text(
+                    text = "${uiState.waterDrunk} ml recorded out of ${uiState.waterGoal} ml.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF5F7280)
+                )
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            InsightMetricCard(
+                label = "Remaining",
+                value = "$remainingWater ml",
+                modifier = Modifier.weight(1f)
+            )
+            InsightMetricCard(
+                label = "Next drink",
+                value = "$suggestedNextDrink ml",
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        InsightMetricCard(
+            label = "Plan basis",
+            value = "${uiState.selectedActivityLevel} activity in ${uiState.selectedCity}",
+            supportingText = "Weather card currently shows ${uiState.displayedTemperature}.",
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+// Small card used by the Insights screen for one summary metric.
+@Composable
+fun InsightMetricCard(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    supportingText: String? = null
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                color = Color(0xFF5F7280)
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF163B4D)
+            )
+            if (supportingText != null) {
+                Text(
+                    text = supportingText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF5F7280)
+                )
+            }
+        }
+    }
+}
+
 // Settings screen where the user can choose preferences for hydration planning.
 @Composable
 fun SettingsScreen(
@@ -503,6 +637,15 @@ fun SettingsChoiceChip(
 fun HydroCheckScreenPreview() {
     CP3406Assignment1UtilityAppTheme {
         HydroCheckScreen()
+    }
+}
+
+// Preview for checking the Insights screen in Android Studio.
+@Preview(showBackground = true)
+@Composable
+fun InsightsScreenPreview() {
+    CP3406Assignment1UtilityAppTheme {
+        InsightsScreen()
     }
 }
 
