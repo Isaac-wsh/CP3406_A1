@@ -4,9 +4,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import com.example.cp3406assignment1_utilityapp.data.repository.WeatherRepository
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 // Records one water logging action with its amount and display time.
 data class DrinkLogEntry(
@@ -31,14 +35,20 @@ data class HydrationUiState(
     val drinkLog: List<DrinkLogEntry> = emptyList(),
     // List of daily totals for today and past days in this app session.
     val dailyTotals: List<DailyTotalEntry> = listOf(DailyTotalEntry(todayDateKey(), 0)),
-    // User-selected city used by the temporary weather display.
+    // User-selected city used when requesting current weather.
     val selectedCity: String = "Singapore",
     // User-selected activity level used to calculate the daily water goal.
     val selectedActivityLevel: String = "Medium",
     // User-selected cup size used as the first quick add option.
     val selectedCupSize: String = "250 ml",
     // User-selected temperature unit used by the weather card.
-    val selectedTemperatureUnit: String = "Celsius"
+    val selectedTemperatureUnit: String = "Celsius",
+    // Latest temperature loaded from the Open-Meteo API.
+    val temperatureCelsius: Double? = null,
+    // Indicates that a weather request is currently running.
+    val isWeatherLoading: Boolean = false,
+    // User-friendly message shown if the weather request fails.
+    val weatherError: String? = null
 ) {
     // Daily water target based on the selected activity level.
     val waterGoal: Int
@@ -48,22 +58,24 @@ data class HydrationUiState(
             else -> 2500
         }
 
-    // Temporary local temperature values used before connecting a real weather API.
-    val cityTemperatureCelsius: Int
-        get() = when (selectedCity) {
-            "Cairns" -> 29
-            "Brisbane" -> 26
-            else -> 32
-        }
-
     // Temperature text shown on the weather card.
     val displayedTemperature: String
         get() {
+            val currentTemperature = temperatureCelsius ?: return "--"
             return if (selectedTemperatureUnit == "Fahrenheit") {
-                "${(cityTemperatureCelsius * 9 / 5) + 32} F"
+                "${Math.round((currentTemperature * 9 / 5) + 32)} F"
             } else {
-                "$cityTemperatureCelsius C"
+                "${Math.round(currentTemperature)} C"
             }
+        }
+
+    // Weather-aware message based on the live temperature.
+    val weatherRecommendation: String
+        get() = when {
+            temperatureCelsius == null -> "Weather-based advice will appear when current data is available."
+            temperatureCelsius >= 30 -> "Hot weather detected. Consider adding an extra drink today."
+            temperatureCelsius >= 24 -> "Warm weather detected. Keep water nearby throughout the day."
+            else -> "Cool weather detected. Continue drinking regularly."
         }
 
     // Numeric cup size used by the Quick add section.
@@ -76,10 +88,16 @@ data class HydrationUiState(
 }
 
 // ViewModel that owns app state and exposes events for the Compose UI.
-class HydrationViewModel : ViewModel() {
+class HydrationViewModel(
+    private val weatherRepository: WeatherRepository
+) : ViewModel() {
     // Compose observes this state and redraws the UI when it changes.
     var uiState by mutableStateOf(HydrationUiState())
         private set
+
+    init {
+        refreshWeather()
+    }
 
     // Adds a selected water amount to today's total.
     fun addWater(amount: Int) {
@@ -112,6 +130,7 @@ class HydrationViewModel : ViewModel() {
     // Updates the city setting selected by the user.
     fun selectCity(city: String) {
         uiState = uiState.copy(selectedCity = city)
+        refreshWeather()
     }
 
     // Updates the activity level that controls the daily goal.
@@ -129,6 +148,27 @@ class HydrationViewModel : ViewModel() {
         uiState = uiState.copy(selectedTemperatureUnit = temperatureUnit)
     }
 
+    // Requests fresh weather data for the currently selected city.
+    fun refreshWeather() {
+        viewModelScope.launch {
+            uiState = uiState.copy(isWeatherLoading = true, weatherError = null)
+            runCatching {
+                weatherRepository.getCurrentWeather(uiState.selectedCity)
+            }.onSuccess { weather ->
+                uiState = uiState.copy(
+                    temperatureCelsius = weather.temperatureCelsius,
+                    isWeatherLoading = false,
+                    weatherError = null
+                )
+            }.onFailure {
+                uiState = uiState.copy(
+                    isWeatherLoading = false,
+                    weatherError = "Unable to load current weather. Check your connection and try again."
+                )
+            }
+        }
+    }
+
     // Resets the daily water amount if the app is still open on a new day.
     private fun refreshDailyIntakeIfNeeded() {
         val today = todayDateKey()
@@ -140,6 +180,17 @@ class HydrationViewModel : ViewModel() {
                 dailyTotals = ensureDailyTotalExists(uiState.dailyTotals, today)
             )
         }
+    }
+
+    companion object {
+        // Factory supplies the repository dependency when Compose creates the ViewModel.
+        fun factory(weatherRepository: WeatherRepository): ViewModelProvider.Factory =
+            object : ViewModelProvider.Factory {
+                @Suppress("UNCHECKED_CAST")
+                override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                    return HydrationViewModel(weatherRepository) as T
+                }
+            }
     }
 }
 

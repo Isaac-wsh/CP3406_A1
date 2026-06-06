@@ -50,6 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.ViewModelProvider
 import com.example.cp3406assignment1_utilityapp.ui.theme.CP3406Assignment1UtilityAppTheme
 
 private val AppBackground = Color(0xFFF4FAFC)
@@ -67,9 +68,13 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val weatherRepository =
+            (application as HydroCheckApplication).appContainer.weatherRepository
         setContent {
             CP3406Assignment1UtilityAppTheme {
-                HydroCheckApp()
+                HydroCheckApp(
+                    viewModelFactory = HydrationViewModel.factory(weatherRepository)
+                )
             }
         }
     }
@@ -88,7 +93,8 @@ enum class HydroCheckTab(
 // Root composable that connects the ViewModel state to the app screens.
 @Composable
 fun HydroCheckApp(
-    hydrationViewModel: HydrationViewModel = viewModel()
+    viewModelFactory: ViewModelProvider.Factory,
+    hydrationViewModel: HydrationViewModel = viewModel(factory = viewModelFactory)
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(HydroCheckTab.Hydration) }
     val uiState = hydrationViewModel.uiState
@@ -123,7 +129,8 @@ fun HydroCheckApp(
                 modifier = Modifier.padding(innerPadding),
                 uiState = uiState,
                 onAddWater = hydrationViewModel::addWater,
-                onResetWater = hydrationViewModel::resetWater
+                onResetWater = hydrationViewModel::resetWater,
+                onRefreshWeather = hydrationViewModel::refreshWeather
             )
 
             HydroCheckTab.Insights -> InsightsScreen(
@@ -191,13 +198,18 @@ fun HydroCheckScreen(
     modifier: Modifier = Modifier,
     uiState: HydrationUiState = HydrationUiState(),
     onAddWater: (Int) -> Unit = {},
-    onResetWater: () -> Unit = {}
+    onResetWater: () -> Unit = {},
+    onRefreshWeather: () -> Unit = {}
 ) {
     AppPage(modifier = modifier) {
         HeaderSection()
         WeatherSummaryCard(
             city = uiState.selectedCity,
-            temperature = uiState.displayedTemperature
+            temperature = uiState.displayedTemperature,
+            recommendation = uiState.weatherRecommendation,
+            isLoading = uiState.isWeatherLoading,
+            errorMessage = uiState.weatherError,
+            onRetry = onRefreshWeather
         )
         HydrationProgressCard(
             waterDrunk = uiState.waterDrunk,
@@ -258,7 +270,11 @@ fun HeaderSection() {
 @Composable
 fun WeatherSummaryCard(
     city: String,
-    temperature: String
+    temperature: String,
+    recommendation: String,
+    isLoading: Boolean,
+    errorMessage: String?,
+    onRetry: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -266,38 +282,56 @@ fun WeatherSummaryCard(
         colors = CardDefaults.cardColors(containerColor = SoftBlue),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(58.dp)
-                    .background(Color(0xFFFFD166), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = temperature,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = DeepText
-                )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(58.dp)
+                        .background(Color(0xFFFFD166), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (isLoading) "..." else temperature,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = DeepText
+                    )
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Column {
+                    Text(
+                        text = city,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = DeepText
+                    )
+                    Text(
+                        text = when {
+                            isLoading -> "Loading current weather..."
+                            errorMessage != null -> "Weather unavailable"
+                            else -> "Live weather from Open-Meteo"
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MutedText
+                    )
+                }
             }
-            Spacer(modifier = Modifier.width(16.dp))
-            Column {
-                Text(
-                    text = city,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = DeepText
-                )
-                Text(
-                    text = "Warm weather detected",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MutedText
-                )
+
+            Text(
+                text = errorMessage ?: recommendation,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (errorMessage == null) DeepText else WarningText
+            )
+
+            if (errorMessage != null) {
+                OutlinedButton(onClick = onRetry) {
+                    Text("Retry weather")
+                }
             }
         }
     }
@@ -795,7 +829,9 @@ fun SettingsChoiceChip(
 @Composable
 fun HydroCheckScreenPreview() {
     CP3406Assignment1UtilityAppTheme {
-        HydroCheckScreen()
+        HydroCheckScreen(
+            uiState = HydrationUiState(temperatureCelsius = 31.0)
+        )
     }
 }
 

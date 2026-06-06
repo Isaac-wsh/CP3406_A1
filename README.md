@@ -1,58 +1,71 @@
 # HydroCheck
 
-HydroCheck is a planned Android utility app for CP3406 Assignment 1. The app is designed to help users quickly check their daily hydration progress and receive simple water intake recommendations based on weather conditions and personal activity settings.
-
-The goal of the app is to provide focused, at-a-glance information. Users should be able to open the app and immediately understand their daily water goal, how much they have already recorded, and whether the current weather suggests drinking more water.
+HydroCheck is an Android hydration utility app developed for CP3406 Assignment 1. It provides focused, at-a-glance information about daily water intake, hydration goals, live weather, and recent drinking history.
 
 ## Core Features
 
-The planned app will include:
-
-- A daily hydration goal displayed in millilitres or litres.
-- A progress display showing how much water has been recorded for the day.
-- Quick add buttons for common cup sizes, such as 250 ml and 500 ml.
-- A weather-aware recommendation based on the current temperature.
-- A settings screen for adjusting city, activity level, cup size, and temperature unit.
+- Track today's water intake with several quick-add amounts.
+- Calculate a daily hydration goal from the selected activity level.
+- Fetch live temperature data for Singapore, Cairns, or Brisbane.
+- Display weather-aware hydration recommendations.
+- Change city, activity level, preferred cup size, and temperature unit.
+- Review today's individual drink entries and daily totals.
+- View hydration progress and suggested next drink on the Insights screen.
+- Reset today's intake automatically when a new date is detected.
 
 ## Screens
 
-HydroCheck will use a simple two-screen structure:
+- **Home:** Live weather, daily progress, quick-add actions, and recommendations.
+- **Insights:** At-a-glance progress metrics and the current hydration plan.
+- **History:** Today's drink log and daily total summaries.
+- **Settings:** Preferences that immediately affect the Home and Insights screens.
 
-- **Hydration screen**: shows the current hydration goal, progress, weather information, recommendation, and quick water logging buttons.
-- **Settings screen**: lets the user adjust preferences that affect the hydration screen.
+## Architecture
 
-The assignment does not require settings to be persistent, so the first implementation may keep settings only while the app is running.
+HydroCheck follows a simple layered architecture suitable for the assignment:
 
-## Technical Plan
+- **Jetpack Compose** builds the user interface with reusable composables.
+- **HydrationViewModel** owns UI state and handles user actions.
+- **WeatherRepository** separates weather data access from UI and business logic.
+- **Retrofit** defines and performs asynchronous Open-Meteo web API requests.
+- **Manual dependency injection** creates Retrofit and injects the repository into the ViewModel through an application-level container.
 
-The app is planned to use the following Android technologies and development practices:
+The app also models loading, success, and error states for live weather. If a request fails, the rest of the hydration features remain available and the user can retry the request.
+
+## Web API
+
+HydroCheck uses the free [Open-Meteo API](https://open-meteo.com/) to fetch current temperature data. The selected city is mapped to its coordinates before the repository requests the current `temperature_2m` value.
+
+No API key is required.
+
+## Technologies
 
 - Kotlin
 - Jetpack Compose
 - Material Design 3
-- ViewModel for UI state management
-- Repository pattern for data handling
-- Retrofit for web API requests
-- Open-Meteo API for weather data
+- ViewModel
+- Repository pattern
+- Manual dependency injection
+- Retrofit with Gson converter
+- Open-Meteo API
+- JUnit
 
-## Development Status
+## Testing
 
-Current progress:
+Repository unit tests use a fake API implementation so data mapping and city coordinates can be checked without making real network requests.
 
-- Blank Android project created.
-- Project connected to GitHub.
-- Initial README added.
+To build and test the project:
 
-Pending work:
+```text
+./gradlew testDebugUnitTest assembleDebug
+```
 
-- Build the Hydration screen UI.
-- Build the Settings screen UI.
-- Add state management for water intake and settings.
-- Add weather API integration.
-- Refine the user interface using Material Design 3.
-- Write the self-reflection for the assignment submission.
+## Current Limitations
 
-## GitHub Progress
+- Hydration history and settings are stored only while the app process is running.
+- The available city list is intentionally limited to three options.
+- A network connection is required for live weather data.
 
-This repository will be updated regularly as features are implemented. Commits will be used to show continuous progress through the design, implementation, testing, and refinement stages of the assignment.
+## Assignment Notes
 
+This project was created for CP3406 Assignment 1: Utility App. Development progress is documented through regular, focused Git commits. Settings persistence is not required by the assignment, so the current implementation keeps preferences in ViewModel state.
