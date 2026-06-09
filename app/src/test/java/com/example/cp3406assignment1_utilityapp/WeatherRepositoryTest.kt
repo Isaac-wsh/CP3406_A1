@@ -4,6 +4,7 @@ import com.example.cp3406assignment1_utilityapp.data.remote.CurrentWeatherRespon
 import com.example.cp3406assignment1_utilityapp.data.remote.OpenMeteoApi
 import com.example.cp3406assignment1_utilityapp.data.remote.OpenMeteoResponse
 import com.example.cp3406assignment1_utilityapp.data.repository.NetworkWeatherRepository
+import com.example.cp3406assignment1_utilityapp.model.CityOption
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -15,7 +16,7 @@ class WeatherRepositoryTest {
         val fakeApi = FakeOpenMeteoApi(temperatureCelsius = 31.5)
         val repository = NetworkWeatherRepository(fakeApi)
 
-        val weather = repository.getCurrentWeather("Singapore")
+        val weather = repository.getCurrentWeather(CityOption.Singapore)
 
         assertEquals(31.5, weather.temperatureCelsius, 0.0)
         assertEquals(1.3521, fakeApi.requestedLatitude, 0.0)
@@ -23,14 +24,14 @@ class WeatherRepositoryTest {
     }
 
     @Test
-    fun getCurrentWeather_usesSingaporeForUnknownCity() = runBlocking {
+    fun getCurrentWeather_usesSelectedCityCoordinates() = runBlocking {
         val fakeApi = FakeOpenMeteoApi(temperatureCelsius = 27.0)
         val repository = NetworkWeatherRepository(fakeApi)
 
-        repository.getCurrentWeather("Unknown")
+        repository.getCurrentWeather(CityOption.Brisbane)
 
-        assertEquals(1.3521, fakeApi.requestedLatitude, 0.0)
-        assertEquals(103.8198, fakeApi.requestedLongitude, 0.0)
+        assertEquals(-27.4698, fakeApi.requestedLatitude, 0.0)
+        assertEquals(153.0251, fakeApi.requestedLongitude, 0.0)
     }
 }
 

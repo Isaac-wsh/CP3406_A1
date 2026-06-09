@@ -26,9 +26,11 @@ HydroCheck follows a simple layered architecture suitable for the assignment:
 
 - **Jetpack Compose** builds the user interface with reusable composables.
 - **HydrationViewModel** owns UI state and handles user actions.
+- **Typed domain models** prevent invalid city, activity, cup-size, and temperature-unit values.
 - **WeatherRepository** separates weather data access from UI and business logic.
 - **Retrofit** defines and performs asynchronous Open-Meteo web API requests.
 - **Manual dependency injection** creates Retrofit and injects the repository into the ViewModel through an application-level container.
+- **Focused screen files** keep each Compose screen and its private components independent.
 
 The app also models loading, success, and error states for live weather. If a request fails, the rest of the hydration features remain available and the user can retry the request.
 
@@ -52,7 +54,7 @@ No API key is required.
 
 ## Testing
 
-Repository unit tests use a fake API implementation so data mapping and city coordinates can be checked without making real network requests.
+Repository unit tests use a fake API implementation so data mapping and city coordinates can be checked without making real network requests. Pure UI-state tests verify hydration goals, temperature conversion, progress limits, and weather recommendations.
 
 To build and test the project:
 
