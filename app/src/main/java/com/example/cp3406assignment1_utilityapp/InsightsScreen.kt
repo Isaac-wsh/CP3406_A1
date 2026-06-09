@@ -32,11 +32,6 @@ fun InsightsScreen(
     uiState: HydrationUiState = HydrationUiState()
 ) {
     val completedPercent = (uiState.progress * 100).toInt()
-    val remainingWater = (uiState.waterGoal - uiState.waterDrunk).coerceAtLeast(0)
-    val preferredCupSize = uiState.selectedCupSize.millilitres
-    val suggestedNextDrink =
-        preferredCupSize.coerceAtMost(remainingWater.takeIf { it > 0 } ?: preferredCupSize)
-
     AppPage(modifier = modifier) {
         PageHeader(
             title = "Insights",
@@ -81,21 +76,20 @@ fun InsightsScreen(
         ) {
             InsightMetricCard(
                 label = "Remaining",
-                value = "$remainingWater ml",
+                value = "${uiState.remainingWater} ml",
                 modifier = Modifier.weight(1f)
             )
             InsightMetricCard(
                 label = "Next drink",
-                value = "$suggestedNextDrink ml",
+                value = "${uiState.suggestedNextDrink} ml",
                 modifier = Modifier.weight(1f)
             )
         }
 
         InsightMetricCard(
             label = "Plan basis",
-            value = "${uiState.selectedActivityLevel.label} activity in " +
-                uiState.selectedCity.label,
-            supportingText = "Weather card currently shows ${uiState.displayedTemperature}.",
+            value = "${uiState.baseWaterGoal} + ${uiState.weatherGoalAdjustment} ml",
+            supportingText = uiState.goalExplanation,
             modifier = Modifier.fillMaxWidth()
         )
     }

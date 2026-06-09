@@ -5,9 +5,9 @@ HydroCheck is an Android hydration utility app developed for CP3406 Assignment 1
 ## Core Features
 
 - Track today's water intake with several quick-add amounts.
-- Calculate a daily hydration goal from the selected activity level.
+- Calculate a daily hydration goal from activity level and live weather.
 - Fetch live temperature data for Singapore, Cairns, or Brisbane.
-- Display weather-aware hydration recommendations.
+- Apply a clear weather adjustment to the daily goal and explain it to the user.
 - Change city, activity level, preferred cup size, and temperature unit.
 - Review today's individual drink entries and daily totals.
 - View hydration progress and suggested next drink on the Insights screen.
@@ -15,7 +15,7 @@ HydroCheck is an Android hydration utility app developed for CP3406 Assignment 1
 
 ## Screens
 
-- **Home:** Live weather, daily progress, quick-add actions, and recommendations.
+- **Home:** Live weather, today's goal, remaining intake, quick-add actions, and a concise plan explanation.
 - **Insights:** At-a-glance progress metrics and the current hydration plan.
 - **History:** Today's drink log and daily total summaries.
 - **Settings:** Preferences that immediately affect the Home and Insights screens.

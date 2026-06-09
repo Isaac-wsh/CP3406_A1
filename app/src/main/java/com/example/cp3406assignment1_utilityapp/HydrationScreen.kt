@@ -30,8 +30,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.cp3406assignment1_utilityapp.model.ActivityLevel
-import com.example.cp3406assignment1_utilityapp.model.CupSize
 import com.example.cp3406assignment1_utilityapp.model.HydrationUiState
 import com.example.cp3406assignment1_utilityapp.ui.theme.CardWhite
 import com.example.cp3406assignment1_utilityapp.ui.theme.CP3406Assignment1UtilityAppTheme
@@ -66,7 +64,8 @@ fun HydrationScreen(
         HydrationProgressCard(
             waterDrunk = uiState.waterDrunk,
             waterGoal = uiState.waterGoal,
-            progress = uiState.progress
+            progress = uiState.progress,
+            hydrationStatus = uiState.hydrationStatus
         )
         QuickAddSection(
             preferredCupSize = uiState.selectedCupSize.millilitres,
@@ -74,8 +73,9 @@ fun HydrationScreen(
             onReset = onResetWater
         )
         DailyTipCard(
-            activityLevel = uiState.selectedActivityLevel,
-            cupSize = uiState.selectedCupSize
+            goalExplanation = uiState.goalExplanation,
+            suggestedNextDrink = uiState.suggestedNextDrink,
+            goalReached = uiState.waterDrunk >= uiState.waterGoal
         )
     }
 }
@@ -190,7 +190,8 @@ private fun WeatherSummaryCard(
 private fun HydrationProgressCard(
     waterDrunk: Int,
     waterGoal: Int,
-    progress: Float
+    progress: Float,
+    hydrationStatus: String
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -238,8 +239,14 @@ private fun HydrationProgressCard(
             )
 
             Text(
-                text = "You have completed ${(progress * 100).toInt()}% of your daily goal.",
-                style = MaterialTheme.typography.bodyMedium,
+                text = hydrationStatus,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = DeepText
+            )
+            Text(
+                text = "${(progress * 100).toInt()}% of today's goal completed.",
+                style = MaterialTheme.typography.bodySmall,
                 color = MutedText
             )
         }
@@ -296,8 +303,9 @@ private fun QuickAddSection(
 
 @Composable
 private fun DailyTipCard(
-    activityLevel: ActivityLevel,
-    cupSize: CupSize
+    goalExplanation: String,
+    suggestedNextDrink: Int,
+    goalReached: Boolean
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -315,9 +323,18 @@ private fun DailyTipCard(
                 color = WarningText
             )
             Text(
-                text = "${activityLevel.label} activity is used for today's goal. " +
-                    "Your preferred quick add amount is ${cupSize.label}.",
+                text = goalExplanation,
                 style = MaterialTheme.typography.bodyMedium,
+                color = WarningText
+            )
+            Text(
+                text = if (goalReached) {
+                    "You have completed today's plan."
+                } else {
+                    "Suggested next drink: $suggestedNextDrink ml."
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
                 color = WarningText
             )
         }

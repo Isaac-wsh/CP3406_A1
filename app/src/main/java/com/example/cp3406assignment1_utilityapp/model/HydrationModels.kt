@@ -69,8 +69,47 @@ data class HydrationUiState(
     val isWeatherLoading: Boolean = false,
     val weatherError: String? = null
 ) {
-    val waterGoal: Int
+    // Activity level provides the starting point for today's hydration target.
+    val baseWaterGoal: Int
         get() = selectedActivityLevel.dailyGoalMl
+
+    // Live warm or hot weather adds a small, easy-to-understand adjustment.
+    val weatherGoalAdjustment: Int
+        get() = when {
+            temperatureCelsius == null -> 0
+            temperatureCelsius >= 30 -> 500
+            temperatureCelsius >= 24 -> 250
+            else -> 0
+        }
+
+    val waterGoal: Int
+        get() = baseWaterGoal + weatherGoalAdjustment
+
+    val remainingWater: Int
+        get() = (waterGoal - waterDrunk).coerceAtLeast(0)
+
+    val suggestedNextDrink: Int
+        get() = if (remainingWater == 0) {
+            0
+        } else {
+            selectedCupSize.millilitres.coerceAtMost(remainingWater)
+        }
+
+    // One concise status line gives the user the most important information first.
+    val hydrationStatus: String
+        get() = when {
+            waterDrunk >= waterGoal -> "Daily goal reached"
+            waterDrunk == 0 -> "$waterGoal ml planned for today"
+            else -> "$remainingWater ml remaining"
+        }
+
+    val goalExplanation: String
+        get() = if (weatherGoalAdjustment > 0) {
+            "${selectedActivityLevel.label} activity sets a $baseWaterGoal ml base goal, " +
+                "plus $weatherGoalAdjustment ml for today's weather."
+        } else {
+            "${selectedActivityLevel.label} activity sets today's $baseWaterGoal ml goal."
+        }
 
     val displayedTemperature: String
         get() {
@@ -86,11 +125,11 @@ data class HydrationUiState(
             temperatureCelsius == null ->
                 "Weather-based advice will appear when current data is available."
             temperatureCelsius >= 30 ->
-                "Hot weather detected. Consider adding an extra drink today."
+                "Hot weather adds 500 ml to today's hydration goal."
             temperatureCelsius >= 24 ->
-                "Warm weather detected. Keep water nearby throughout the day."
+                "Warm weather adds 250 ml to today's hydration goal."
             else ->
-                "Cool weather detected. Continue drinking regularly."
+                "Cool weather detected. No weather adjustment is needed."
         }
 
     val progress: Float
