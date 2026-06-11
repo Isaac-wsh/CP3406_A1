@@ -1,8 +1,5 @@
 package com.example.cp3406assignment1_utilityapp
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -18,14 +15,18 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-// Owns app state and handles user actions and weather requests.
+// Owns app state and exposes it as an observable stream for the Compose UI.
 class HydrationViewModel(
     private val weatherRepository: WeatherRepository
 ) : ViewModel() {
-    var uiState by mutableStateOf(HydrationUiState())
-        private set
+    private val _uiState = MutableStateFlow(HydrationUiState())
+    val uiState: StateFlow<HydrationUiState> = _uiState.asStateFlow()
 
     init {
         refreshWeather()
@@ -33,69 +34,82 @@ class HydrationViewModel(
 
     fun addWater(amount: Int) {
         refreshDailyIntakeIfNeeded()
-        val newTotal = uiState.waterDrunk + amount
-        uiState = uiState.copy(
-            waterDrunk = newTotal,
-            drinkLog = listOf(
-                DrinkLogEntry(
-                    amount = amount,
-                    time = currentTimeLabel(),
-                    date = uiState.recordedDate
-                )
-            ) + uiState.drinkLog,
-            dailyTotals = updateDailyTotal(uiState.dailyTotals, uiState.recordedDate, newTotal)
-        )
+        _uiState.update { state ->
+            val newTotal = state.waterDrunk + amount
+            state.copy(
+                waterDrunk = newTotal,
+                drinkLog = listOf(
+                    DrinkLogEntry(
+                        amount = amount,
+                        time = currentTimeLabel(),
+                        date = state.recordedDate
+                    )
+                ) + state.drinkLog,
+                dailyTotals = updateDailyTotal(state.dailyTotals, state.recordedDate, newTotal)
+            )
+        }
     }
 
     fun resetWater() {
         val today = todayDateKey()
-        uiState = uiState.copy(
-            waterDrunk = 0,
-            recordedDate = today,
-            drinkLog = emptyList(),
-            dailyTotals = updateDailyTotal(uiState.dailyTotals, today, 0)
-        )
+        _uiState.update { state ->
+            state.copy(
+                waterDrunk = 0,
+                recordedDate = today,
+                drinkLog = emptyList(),
+                dailyTotals = updateDailyTotal(state.dailyTotals, today, 0)
+            )
+        }
     }
 
     fun selectCity(city: CityOption) {
-        uiState = uiState.copy(selectedCity = city)
+        _uiState.update { it.copy(selectedCity = city) }
         refreshWeather()
     }
 
     fun selectActivityLevel(activityLevel: ActivityLevel) {
-        uiState = uiState.copy(selectedActivityLevel = activityLevel)
+        _uiState.update { it.copy(selectedActivityLevel = activityLevel) }
     }
 
     fun selectCupSize(cupSize: CupSize) {
-        uiState = uiState.copy(selectedCupSize = cupSize)
+        _uiState.update { it.copy(selectedCupSize = cupSize) }
     }
 
     fun selectTemperatureUnit(temperatureUnit: TemperatureUnit) {
-        uiState = uiState.copy(selectedTemperatureUnit = temperatureUnit)
+        _uiState.update { it.copy(selectedTemperatureUnit = temperatureUnit) }
     }
 
     fun refreshWeather() {
         viewModelScope.launch {
-            val requestedCity = uiState.selectedCity
-            uiState = uiState.copy(isWeatherLoading = true, weatherError = null)
+            val requestedCity = _uiState.value.selectedCity
+            _uiState.update { it.copy(isWeatherLoading = true, weatherError = null) }
+
             runCatching {
                 weatherRepository.getCurrentWeather(requestedCity)
             }.onSuccess { weather ->
                 // Ignore a late response if the user selected another city meanwhile.
-                if (uiState.selectedCity == requestedCity) {
-                    uiState = uiState.copy(
-                        temperatureCelsius = weather.temperatureCelsius,
-                        isWeatherLoading = false,
-                        weatherError = null
-                    )
+                _uiState.update { state ->
+                    if (state.selectedCity == requestedCity) {
+                        state.copy(
+                            temperatureCelsius = weather.temperatureCelsius,
+                            isWeatherLoading = false,
+                            weatherError = null
+                        )
+                    } else {
+                        state
+                    }
                 }
             }.onFailure {
-                if (uiState.selectedCity == requestedCity) {
-                    uiState = uiState.copy(
-                        isWeatherLoading = false,
-                        weatherError =
-                            "Unable to load current weather. Check your connection and try again."
-                    )
+                _uiState.update { state ->
+                    if (state.selectedCity == requestedCity) {
+                        state.copy(
+                            isWeatherLoading = false,
+                            weatherError =
+                                "Unable to load current weather. Check your connection and try again."
+                        )
+                    } else {
+                        state
+                    }
                 }
             }
         }
@@ -103,13 +117,17 @@ class HydrationViewModel(
 
     private fun refreshDailyIntakeIfNeeded() {
         val today = todayDateKey()
-        if (uiState.recordedDate != today) {
-            uiState = uiState.copy(
-                waterDrunk = 0,
-                recordedDate = today,
-                drinkLog = emptyList(),
-                dailyTotals = ensureDailyTotalExists(uiState.dailyTotals, today)
-            )
+        _uiState.update { state ->
+            if (state.recordedDate != today) {
+                state.copy(
+                    waterDrunk = 0,
+                    recordedDate = today,
+                    drinkLog = emptyList(),
+                    dailyTotals = ensureDailyTotalExists(state.dailyTotals, today)
+                )
+            } else {
+                state
+            }
         }
     }
 

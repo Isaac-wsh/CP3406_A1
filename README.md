@@ -25,12 +25,14 @@ HydroCheck is an Android hydration utility app developed for CP3406 Assignment 1
 HydroCheck follows a simple layered architecture suitable for the assignment:
 
 - **Jetpack Compose** builds the user interface with reusable composables.
+- **StateFlow and lifecycle-aware collection** keep Compose state updates aligned with the screen lifecycle.
 - **HydrationViewModel** owns UI state and handles user actions.
 - **Typed domain models** prevent invalid city, activity, cup-size, and temperature-unit values.
 - **WeatherRepository** separates weather data access from UI and business logic.
 - **Retrofit** defines and performs asynchronous Open-Meteo web API requests.
 - **Manual dependency injection** creates Retrofit and injects the repository into the ViewModel through an application-level container.
 - **Focused screen files** keep each Compose screen and its private components independent.
+- **LazyColumn** renders growing hydration history efficiently.
 
 The app also models loading, success, and error states for live weather. If a request fails, the rest of the hydration features remain available and the user can retry the request.
 

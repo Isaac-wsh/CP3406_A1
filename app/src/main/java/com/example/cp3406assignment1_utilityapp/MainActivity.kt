@@ -6,6 +6,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.Insights
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -17,7 +23,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.cp3406assignment1_utilityapp.ui.theme.AppBackground
 import com.example.cp3406assignment1_utilityapp.ui.theme.CardWhite
@@ -45,11 +53,14 @@ class MainActivity : ComponentActivity() {
 }
 
 // Destinations displayed in the bottom navigation bar.
-enum class HydroCheckTab(val label: String) {
-    Hydration("Home"),
-    Insights("Insights"),
-    History("History"),
-    Settings("Settings")
+enum class HydroCheckTab(
+    val label: String,
+    val icon: ImageVector
+) {
+    Hydration("Home", Icons.Rounded.Home),
+    Insights("Insights", Icons.Rounded.Insights),
+    History("History", Icons.Rounded.History),
+    Settings("Settings", Icons.Rounded.Settings)
 }
 
 // Connects ViewModel state and events to the four app screens.
@@ -59,7 +70,7 @@ fun HydroCheckApp(
     hydrationViewModel: HydrationViewModel = viewModel(factory = viewModelFactory)
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(HydroCheckTab.Hydration) }
-    val uiState = hydrationViewModel.uiState
+    val uiState by hydrationViewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -71,7 +82,12 @@ fun HydroCheckApp(
                         selected = selectedTab == tab,
                         onClick = { selectedTab = tab },
                         label = { Text(tab.label) },
-                        icon = {},
+                        icon = {
+                            Icon(
+                                imageVector = tab.icon,
+                                contentDescription = tab.label
+                            )
+                        },
                         colors = NavigationBarItemDefaults.colors(
                             selectedTextColor = PrimaryTeal,
                             indicatorColor = SoftBlue,

@@ -1,10 +1,13 @@
 package com.example.cp3406assignment1_utilityapp
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -24,93 +27,107 @@ import com.example.cp3406assignment1_utilityapp.ui.theme.CP3406Assignment1Utilit
 import com.example.cp3406assignment1_utilityapp.ui.theme.DeepText
 import com.example.cp3406assignment1_utilityapp.ui.theme.MutedText
 
-// Displays individual drinks and daily totals in separate sections.
+// Lazily renders individual drinks and daily totals as history grows.
 @Composable
 fun HistoryScreen(
     modifier: Modifier = Modifier,
     uiState: HydrationUiState = HydrationUiState()
 ) {
-    AppPage(modifier = modifier) {
-        PageHeader(
-            title = "History",
-            subtitle = "Review individual drinks and daily totals."
-        )
-        DrinkLogSection(drinkLog = uiState.drinkLog)
-        DailyTotalsSection(dailyTotals = uiState.dailyTotals)
-    }
-}
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 22.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            PageHeader(
+                title = "History",
+                subtitle = "Review individual drinks and daily totals."
+            )
+        }
 
-@Composable
-private fun DrinkLogSection(drinkLog: List<DrinkLogEntry>) {
-    HistorySectionCard(title = "Today's drink log") {
-        if (drinkLog.isEmpty()) {
-            EmptyHistoryText(text = "No drinks logged yet today.")
+        item { HistorySectionTitle("Today's drink log") }
+        if (uiState.drinkLog.isEmpty()) {
+            item { EmptyHistoryCard("No drinks logged yet today.") }
         } else {
-            drinkLog.forEach { entry ->
-                HistoryRow(leadingText = "+${entry.amount} ml", trailingText = entry.time)
+            items(uiState.drinkLog) { entry ->
+                HistoryRowCard(
+                    leadingText = "+${entry.amount} ml",
+                    trailingText = entry.time
+                )
             }
         }
-    }
-}
 
-@Composable
-private fun DailyTotalsSection(dailyTotals: List<DailyTotalEntry>) {
-    HistorySectionCard(title = "Daily totals") {
-        dailyTotals.forEach { entry ->
-            HistoryRow(leadingText = entry.date, trailingText = "${entry.totalAmount} ml")
-        }
-    }
-}
-
-@Composable
-private fun HistorySectionCard(
-    title: String,
-    content: @Composable () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = CardWhite),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = DeepText
+        item { HistorySectionTitle("Daily totals") }
+        items(
+            items = uiState.dailyTotals,
+            key = DailyTotalEntry::date
+        ) { entry ->
+            HistoryRowCard(
+                leadingText = entry.date,
+                trailingText = "${entry.totalAmount} ml"
             )
-            content()
         }
     }
 }
 
 @Composable
-private fun HistoryRow(
+private fun HistorySectionTitle(title: String) {
+    Text(
+        text = title,
+        modifier = Modifier.padding(top = 8.dp),
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.SemiBold,
+        color = DeepText
+    )
+}
+
+@Composable
+private fun HistoryRowCard(
     leadingText: String,
     trailingText: String
 ) {
-    Row(
+    Card(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = CardWhite),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-        Text(
-            text = leadingText,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.SemiBold,
-            color = DeepText
-        )
-        Text(text = trailingText, style = MaterialTheme.typography.bodyMedium, color = MutedText)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = leadingText,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = DeepText
+            )
+            Text(
+                text = trailingText,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MutedText
+            )
+        }
     }
 }
 
 @Composable
-private fun EmptyHistoryText(text: String) {
-    Text(text = text, style = MaterialTheme.typography.bodyMedium, color = MutedText)
+private fun EmptyHistoryCard(text: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = CardWhite)
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(18.dp),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MutedText
+        )
+    }
 }
 
 @Preview(showBackground = true)
